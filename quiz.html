@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Quiz Class</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f0f14; --surface: #1a1a24; --surface2: #24243a;
+  --border: rgba(255,255,255,0.1); --text: #f0f0f5; --muted: rgba(240,240,245,0.5);
+  --a: #e85d3a; --b: #3a8be8; --c: #1db87a; --d: #e8b520;
+  --accent: #7c6af5; --radius: 14px;
+}
+html, body { min-height: 100vh; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+.screen { display: none; flex-direction: column; min-height: 100vh; padding: 20px; max-width: 520px; margin: 0 auto; }
+.screen.active { display: flex; }
+.screen.center { justify-content: center; align-items: center; gap: 16px; }
+h1 { font-size: 26px; font-weight: 700; letter-spacing: -.5px; }
+h2 { font-size: 18px; font-weight: 600; }
+p.sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; width: 100%; }
+label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+input, textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; color: var(--text); font-family: inherit; font-size: 15px; outline: none; transition: border-color .2s; }
+input:focus, textarea:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 72px; }
+.btn { width: 100%; padding: 14px; border-radius: 12px; border: none; cursor: pointer; font-family: inherit; font-size: 15px; font-weight: 600; transition: opacity .15s, transform .1s; background: var(--accent); color: #fff; }
+.btn:hover { opacity: .9; } .btn:active { transform: scale(.97); }
+.btn.sec { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn.danger { background: #a93226; }
+.btn.success { background: #1db87a; }
+.btn.sm { padding: 9px 15px; font-size: 13px; width: auto; border-radius: 9px; }
+.field { margin-bottom: 13px; }
+.err { color: #e85d3a; font-size: 13px; min-height: 18px; }
+.sep { height: 1px; background: var(--border); margin: 14px 0; width: 100%; }
+.gap { height: 12px; }
+
+.q-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; margin-bottom: 9px; display: flex; align-items: flex-start; gap: 11px; }
+.q-card:hover { border-color: rgba(255,255,255,.22); }
+.q-num { width: 28px; height: 28px; border-radius: 7px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; color: #fff; margin-top: 1px; }
+.q-body { flex: 1; min-width: 0; }
+.q-texto { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.q-opts { display: flex; flex-wrap: wrap; gap: 5px; }
+.q-opt { font-size: 12px; padding: 3px 9px; border-radius: 6px; color: #fff; }
+.q-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.icon-btn { width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: all .2s; }
+.icon-btn:hover { border-color: rgba(255,255,255,.3); color: var(--text); }
+.icon-btn.del:hover { border-color: #e85d3a; color: #e85d3a; }
+
+.csb { width: 36px; height: 36px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface2); color: var(--muted); font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; flex-shrink: 0; }
+.csb.sel { border-color: var(--c); background: rgba(29,184,122,.18); color: var(--c); }
+.dur-btn { flex: 1; padding: 8px 4px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; transition: all .2s; }
+.dur-btn.sel { background: rgba(124,106,245,.2); border-color: var(--accent); color: var(--accent); }
+.opt-row { display: flex; gap: 8px; align-items: center; margin-bottom: 9px; }
+.opt-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+.opt-btn { display: flex; align-items: center; gap: 12px; width: 100%; border: none; cursor: pointer; border-radius: 12px; padding: 16px; margin-bottom: 10px; font-family: inherit; font-size: 16px; font-weight: 600; color: #fff; text-align: left; transition: opacity .15s, transform .1s; }
+.opt-btn:hover { opacity: .9; } .opt-btn:active { transform: scale(.97); }
+.opt-btn:disabled { opacity: .4; cursor: default; transform: none; }
+.opt-btn.correct { background: #1db87a !important; }
+.opt-A { background: var(--a); } .opt-B { background: var(--b); } .opt-C { background: var(--c); } .opt-D { background: var(--d); }
+.opt-letter { background: rgba(0,0,0,.25); width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+.timer-wrap { position: relative; width: 86px; height: 86px; }
+.timer-wrap svg { transform: rotate(-90deg); }
+.timer-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 27px; font-weight: 700; }
+.bar-track { height: 6px; background: var(--surface2); border-radius: 4px; overflow: hidden; margin-top: 5px; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width .5s ease; }
+.live-opt { margin-bottom: 10px; }
+.live-label { display: flex; gap: 8px; align-items: center; margin-bottom: 3px; }
+.live-badge { padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #fff; }
+.score-row { display: flex; align-items: center; gap: 10px; padding: 10px 13px; background: var(--surface2); border-radius: 9px; margin-bottom: 6px; }
+.tag { display: inline-flex; padding: 4px 11px; border-radius: 20px; font-size: 13px; font-weight: 600; background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin: 3px; }
+.logo { font-size: 44px; font-weight: 900; letter-spacing: -2px; background: linear-gradient(135deg, var(--accent), #e85d8a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.correct-box { background: rgba(29,184,122,.12); border: 1px solid rgba(29,184,122,.35); border-radius: 10px; padding: 13px; }
+.ip-box { background: rgba(124,106,245,.1); border: 1px solid rgba(124,106,245,.3); border-radius: 10px; padding: 11px 13px; }
+.ip-big { font-size: 20px; font-weight: 800; font-family: monospace; color: var(--accent); margin-top: 3px; }
+.pulse { animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: flex; align-items: flex-end; justify-content: center; z-index: 100; padding: 0; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 18px 18px 0 0; padding: 22px 20px; width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; }
+</style>
+</head>
+<body>
+
+<!-- INICIO -->
+<div class="screen center active" id="scr-inicio">
+  <div style="text-align:center">
+    <div class="logo">Quiz!</div>
+    <p class="sub" style="margin-top:6px">Preguntas en tiempo real · puntuación por equipos</p>
+  </div>
+  <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:9px">
+    <button class="btn" onclick="showScreen('scr-alumno-nombre')">Soy alumno / equipo</button>
+    <button class="btn sec" onclick="showScreen('scr-profe-login')">Modo profesor</button>
+  </div>
+</div>
+
+<!-- ALUMNO: NOMBRE -->
+<div class="screen center" id="scr-alumno-nombre">
+  <h1>¿Cómo se llama tu equipo?</h1>
+  <div style="width:100%;max-width:340px">
+    <div class="field"><label>Nombre del equipo</label>
+      <input id="inp-equipo" placeholder="Los Tigres" maxlength="30" onkeydown="if(event.key==='Enter')unirseAlumno()">
+    </div>
+    <p class="err" id="err-alumno"></p>
+    <button class="btn" onclick="unirseAlumno()">Entrar</button>
+    <button class="btn sec" style="margin-top:8px" onclick="showScreen('scr-inicio')">Volver</button>
+  </div>
+</div>
+
+<!-- ALUMNO: ESPERA -->
+<div class="screen center" id="scr-alumno-espera">
+  <div style="font-size:46px" class="pulse">⏳</div>
+  <h2 id="eq-nombre-disp" style="text-align:center"></h2>
+  <p class="sub" style="text-align:center">El profesor lanzará la pregunta en breve</p>
+  <div class="card" style="max-width:340px"><p style="font-weight:600;font-size:13px;margin-bottom:8px">Clasificación</p><div id="alu-tabla-espera"><p class="sub" style="text-align:center;font-size:13px">Sin puntuaciones aún</p></div></div>
+</div>
+
+<!-- ALUMNO: PREGUNTA -->
+<div class="screen" id="scr-alumno-pregunta">
+  <div style="display:flex;justify-content:center;padding:14px 0 8px">
+    <div class="timer-wrap">
+      <svg width="86" height="86" viewBox="0 0 86 86">
+        <circle cx="43" cy="43" r="36" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="7"/>
+        <circle id="s-ring" cx="43" cy="43" r="36" fill="none" stroke="var(--accent)" stroke-width="7" stroke-dasharray="226.2" stroke-dashoffset="0" stroke-linecap="round" style="transition:stroke-dashoffset .3s linear,stroke .5s"/>
+      </svg>
+      <div class="timer-num" id="s-tnum">30</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:13px;text-align:center">
+    <p style="font-size:17px;font-weight:600;line-height:1.4" id="s-pregunta-txt"></p>
+  </div>
+  <div id="s-opciones"></div>
+</div>
+
+<!-- ALUMNO: RESPONDIDO -->
+<div class="screen center" id="scr-alumno-respondido">
+  <div style="font-size:46px">✓</div>
+  <h2>¡Respuesta enviada!</h2>
+  <p class="sub">Esperando al resto de equipos...</p>
+  <div class="card" style="max-width:340px;width:100%"><label>Tu respuesta</label><p id="s-mi-respuesta" style="font-weight:600;font-size:16px;margin-top:4px"></p></div>
+</div>
+
+<!-- ALUMNO: RESULTADO -->
+<div class="screen center" id="scr-alumno-resultado">
+  <div style="font-size:58px;text-align:center" id="s-res-icon"></div>
+  <div style="font-size:26px;font-weight:700;text-align:center" id="s-res-titulo"></div>
+  <div class="card correct-box" style="max-width:340px;width:100%"><label>Respuesta correcta</label><p id="s-correcta-disp" style="font-weight:600;font-size:15px;margin-top:4px"></p></div>
+  <div class="card" style="max-width:340px;width:100%">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <span style="font-weight:600">Puntuación total</span>
+      <span id="s-pts-total" style="font-size:22px;font-weight:800;color:var(--accent)"></span>
+    </div>
+    <p class="sub pulse" style="font-size:13px">Esperando siguiente pregunta...</p>
+  </div>
+</div>
+
+<!-- ALUMNO: FIN -->
+<div class="screen center" id="scr-alumno-fin">
+  <div style="font-size:46px">🏆</div>
+  <h1 style="text-align:center">¡Juego terminado!</h1>
+  <div class="card" style="max-width:360px;width:100%">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-weight:600">Equipo</span><span id="s-fin-equipo" style="font-weight:700"></span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px"><span style="font-weight:600">Puntuación</span><span id="s-fin-pts" style="font-size:22px;font-weight:800;color:var(--accent)"></span></div>
+    <div class="sep"></div><div id="s-fin-tabla"></div>
+  </div>
+  <button class="btn sec" style="max-width:360px" onclick="location.reload()">Jugar otra vez</button>
+</div>
+
+<!-- PROFE: LOGIN -->
+<div class="screen center" id="scr-profe-login">
+  <h1>Acceso profesor</h1>
+  <div style="width:100%;max-width:340px">
+    <div class="field"><label>Contraseña</label><input type="password" id="inp-clave" placeholder="profe" onkeydown="if(event.key==='Enter')loginProfe()"></div>
+    <p class="err" id="err-profe"></p>
+    <button class="btn" onclick="loginProfe()">Entrar</button>
+    <button class="btn sec" style="margin-top:8px" onclick="showScreen('scr-inicio')">Volver</button>
+    <p class="sub" style="text-align:center;margin-top:10px">Contraseña por defecto: <strong>profe</strong></p>
+  </div>
+</div>
+
+<!-- PROFE: BANCO -->
+<div class="screen" id="scr-profe-banco">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);margin-bottom:16px">
+    <h1>Banco de preguntas</h1>
+    <button class="btn sm" onclick="abrirModal(null)">+ Nueva</button>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="ip-box">
+      <p style="font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)">Los alumnos entran en:</p>
+      <p class="ip-big" id="t-ip-banco">Cargando...</p>
+    </div>
+  </div>
+  <div id="banco-lista"></div>
+  <div class="gap"></div>
+  <button class="btn success" onclick="iniciarJuego()" style="margin-bottom:8px">Iniciar juego →</button>
+  <button class="btn sec" onclick="showScreen('scr-inicio')">Cerrar sesión</button>
+  <div class="gap"></div>
+</div>
+
+<!-- PROFE: LOBBY -->
+<div class="screen" id="scr-profe-lobby">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);margin-bottom:14px">
+    <div><h2>Sala abierta</h2><p class="sub" id="t-eq-count">0 equipos</p></div>
+    <button class="btn sm sec" onclick="volverBanco()">← Banco</button>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="ip-box" style="margin-bottom:12px">
+      <p style="font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)">Alumnos entran en:</p>
+      <p class="ip-big" id="t-ip-lobby">Cargando...</p>
+    </div>
+    <div id="t-equipos-list" style="display:flex;flex-wrap:wrap;gap:4px;min-height:24px"><span class="sub" style="font-size:13px">Esperando equipos...</span></div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <p style="font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Preguntas del juego</p>
+    <div id="lobby-q-lista"></div>
+  </div>
+  <button class="btn" onclick="lanzarPregunta(0)">Empezar — Pregunta 1</button>
+</div>
+
+<!-- PROFE: PREGUNTA EN VIVO -->
+<div class="screen" id="scr-profe-pregunta">
+  <div style="display:flex;justify-content:center;padding:14px 0 8px">
+    <div class="timer-wrap">
+      <svg width="86" height="86" viewBox="0 0 86 86">
+        <circle cx="43" cy="43" r="36" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="7"/>
+        <circle id="t-ring" cx="43" cy="43" r="36" fill="none" stroke="var(--accent)" stroke-width="7" stroke-dasharray="226.2" stroke-dashoffset="0" stroke-linecap="round" style="transition:stroke-dashoffset .3s linear,stroke .5s"/>
+      </svg>
+      <div class="timer-num" id="t-tnum">30</div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+    <p class="sub" id="t-qnum-lbl" style="font-size:13px"></p>
+    <p class="sub" id="t-resp-count" style="font-size:13px"></p>
+  </div>
+  <div class="card" style="margin-bottom:12px;text-align:center"><p style="font-size:17px;font-weight:600;line-height:1.4" id="t-pregunta-txt"></p></div>
+  <div class="card" style="margin-bottom:12px;text-align:center;padding:28px 18px">
+    <p style="font-size:48px;font-weight:800;color:var(--accent)" id="t-resp-num">0</p>
+    <p class="sub" style="font-size:15px;margin-top:4px" id="t-resp-sub"></p>
+    <div style="margin-top:20px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap" id="t-equipos-respondidos"></div>
+  </div>
+  <button class="btn danger" onclick="terminarPregunta()">Terminar pregunta ya</button>
+</div>
+
+<!-- PROFE: RESULTADOS -->
+<div class="screen" id="scr-profe-resultados">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);margin-bottom:14px">
+    <h2 id="t-res-titulo">Resultados</h2>
+    <button class="btn sm danger" onclick="endGame()">Finalizar</button>
+  </div>
+  <div class="card" style="margin-bottom:12px" id="t-res-opciones"></div>
+  <div class="card" style="margin-bottom:12px"><p style="font-weight:600;font-size:14px;margin-bottom:10px">Clasificación</p><div id="t-res-tabla"></div></div>
+  <button class="btn" id="btn-sig" onclick="siguientePregunta()">Siguiente pregunta →</button>
+  <div class="gap"></div>
+</div>
+
+<!-- PROFE: FIN -->
+<div class="screen center" id="scr-profe-fin">
+  <div style="font-size:46px">🏆</div>
+  <h1 style="text-align:center">¡Juego terminado!</h1>
+  <div class="card" style="max-width:360px;width:100%"><p style="font-weight:600;margin-bottom:10px">Clasificación final</p><div id="t-fin-tabla"></div></div>
+  <button class="btn" style="max-width:360px" onclick="volverBanco()">Volver al banco</button>
+</div>
+
+<!-- MODAL PREGUNTA -->
+<div class="modal-backdrop" id="modal" style="display:none" onclick="if(event.target===this)cerrarModal()">
+  <div class="modal">
+    <h2 id="modal-h" style="margin-bottom:16px">Nueva pregunta</h2>
+    <input type="hidden" id="edit-idx">
+    <div class="field"><label>Enunciado</label><textarea id="f-txt" placeholder="Escribe la pregunta..."></textarea></div>
+    <div id="f-opts"></div>
+    <div class="field"><label>Respuesta correcta</label><div style="display:flex;gap:8px" id="f-csels"></div></div>
+    <div class="field"><label>Tiempo</label><div style="display:flex;gap:6px" id="f-durs"></div></div>
+    <p class="err" id="err-modal"></p>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn sec sm" style="flex:1;padding:12px" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn sm" style="flex:2;padding:12px" onclick="guardarPregunta()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const OPTS=[{l:'A',col:'#e85d3a'},{l:'B',col:'#3a8be8'},{l:'C',col:'#1db87a'},{l:'D',col:'#e8b520'}];
+let role=null, equipoNombre='', miRespuesta=null, timerId=null, pollId=null;
+let estadoActual=null, banco=[], editCorrecta=0, editDur=20, qActualIdx=0;
+let prevFase=null, prevQIdx=-1;
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+// ─── ALUMNO ───────────────────────────────────────
+function unirseAlumno(){
+  const n=document.getElementById('inp-equipo').value.trim();
+  if(!n){document.getElementById('err-alumno').textContent='Escribe el nombre';return;}
+  equipoNombre=n; role='alumno';
+  document.getElementById('eq-nombre-disp').textContent=n;
+  showScreen('scr-alumno-espera'); startPoll();
+}
+
+// ─── PROFE ────────────────────────────────────────
+function loginProfe(){
+  if(document.getElementById('inp-clave').value!=='profe'){document.getElementById('err-profe').textContent='Contraseña incorrecta';return;}
+  role='profe'; cargarBanco(); cargarIP(); showScreen('scr-profe-banco'); startPoll();
+}
+
+async function cargarIP(){
+  // En Render usamos la URL actual de la página
+  const url = window.location.host;
+  const proto = window.location.protocol;
+  const disp = proto + '//' + url;
+  ['t-ip-banco','t-ip-lobby'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=disp;});
+}
+
+async function cargarBanco(){
+  banco=await getJSON('/api/preguntas')||[];
+  renderBanco();
+}
+
+function renderBanco(){
+  const c=document.getElementById('banco-lista');
+  if(!banco.length){c.innerHTML='<p class="sub" style="text-align:center;padding:24px 0">No hay preguntas todavía.<br>Pulsa "+ Nueva" para añadir la primera.</p>';return;}
+  c.innerHTML='';
+  banco.forEach((q,i)=>{
+    const d=document.createElement('div');d.className='q-card';
+    const opts=q.opciones.map((o,j)=>`<span class="q-opt" style="background:${OPTS[j].col}${j===q.correcta?'':'80'}">${OPTS[j].l}: ${o.length>20?o.slice(0,18)+'…':o}</span>`).join('');
+    d.innerHTML=`<div class="q-num">${i+1}</div>
+    <div class="q-body">
+      <div class="q-texto">${q.texto}</div>
+      <div class="q-opts">${opts}</div>
+      <p style="font-size:11px;color:var(--muted);margin-top:5px">⏱ ${q.duracion}s</p>
+    </div>
+    <div class="q-actions">
+      <button class="icon-btn" onclick="abrirModal(${i})">✏</button>
+      <button class="icon-btn del" onclick="eliminarPregunta(${i})">✕</button>
+    </div>`;
+    c.appendChild(d);
+  });
+}
+
+function abrirModal(idx){
+  const editar=idx!==null;
+  document.getElementById('modal-h').textContent=editar?'Editar pregunta':'Nueva pregunta';
+  document.getElementById('edit-idx').value=editar?idx:'';
+  const q=editar?banco[idx]:null;
+  document.getElementById('f-txt').value=q?q.texto:'';
+  editCorrecta=q?q.correcta:0; editDur=q?q.duracion:20;
+  const ow=document.getElementById('f-opts');ow.innerHTML='';
+  OPTS.forEach((o,i)=>{
+    const d=document.createElement('div');d.className='opt-row field';
+    d.innerHTML=`<span class="opt-dot" style="background:${o.col}"></span><input id="fo${i}" placeholder="Opción ${o.l}" value="${q?q.opciones[i]:''}" style="flex:1">`;
+    ow.appendChild(d);
+  });
+  const cb=document.getElementById('f-csels');cb.innerHTML='';
+  OPTS.forEach((o,i)=>{const b=document.createElement('button');b.className='csb'+(i===editCorrecta?' sel':'');b.id='fcsb'+i;b.textContent=o.l;b.onclick=()=>selC(i);cb.appendChild(b);});
+  const db=document.getElementById('f-durs');db.innerHTML='';
+  [10,15,20,30,45,60].forEach(s=>{const b=document.createElement('button');b.className='dur-btn'+(s===editDur?' sel':'');b.id='fdb'+s;b.textContent=s+'s';b.onclick=()=>selD(s);db.appendChild(b);});
+  document.getElementById('err-modal').textContent='';
+  document.getElementById('modal').style.display='flex';
+  setTimeout(()=>document.getElementById('f-txt').focus(),80);
+}
+
+function selC(i){editCorrecta=i;OPTS.forEach((_,j)=>{const b=document.getElementById('fcsb'+j);if(b)b.className='csb'+(j===i?' sel':'');});}
+function selD(s){editDur=s;[10,15,20,30,45,60].forEach(v=>{const b=document.getElementById('fdb'+v);if(b)b.className='dur-btn'+(v===s?' sel':'');});}
+function cerrarModal(){document.getElementById('modal').style.display='none';}
+
+async function guardarPregunta(){
+  const texto=document.getElementById('f-txt').value.trim();
+  const opciones=OPTS.map((_,i)=>(document.getElementById('fo'+i)?.value||'').trim());
+  if(!texto){document.getElementById('err-modal').textContent='Escribe el enunciado';return;}
+  if(opciones.some(o=>!o)){document.getElementById('err-modal').textContent='Completa las 4 opciones';return;}
+  const pregunta={texto,opciones,correcta:editCorrecta,duracion:editDur};
+  const idx=document.getElementById('edit-idx').value;
+  if(idx!=='') banco[parseInt(idx)]=pregunta; else banco.push(pregunta);
+  await postJSON('/api/preguntas',banco);
+  cerrarModal(); renderBanco();
+}
+
+async function eliminarPregunta(i){
+  if(!confirm('¿Eliminar esta pregunta?'))return;
+  banco.splice(i,1); await postJSON('/api/preguntas',banco); renderBanco();
+}
+
+async function iniciarJuego(){
+  if(!banco.length){alert('Añade al menos una pregunta al banco.');return;}
+  const estado={fase:'espera',qIdx:0,pregunta:null,puntuaciones:{},equipos:[]};
+  await postJSON('/api/estado',estado); estadoActual=estado; qActualIdx=0;
+  await cargarIP();
+  renderLobbyQ();
+  updateEquipos([]);
+  showScreen('scr-profe-lobby');
+}
+
+function renderLobbyQ(){
+  const c=document.getElementById('lobby-q-lista');c.innerHTML='';
+  banco.forEach((q,i)=>{
+    const d=document.createElement('div');
+    d.style.cssText='display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)';
+    d.innerHTML=`<span style="width:22px;height:22px;border-radius:6px;background:${i===0?'var(--accent)':'var(--surface2)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${i+1}</span>
+    <span style="flex:1;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${q.texto}</span>
+    <span style="font-size:12px;color:var(--muted)">⏱${q.duracion}s</span>`;
+    c.appendChild(d);
+  });
+}
+
+async function lanzarPregunta(idx){
+  const q=banco[idx]; if(!q)return;
+  qActualIdx=idx;
+  const estado={...estadoActual,fase:'pregunta',qIdx:idx,pregunta:{...q,inicio:Date.now()}};
+  await postJSON('/api/estado',estado); estadoActual=estado;
+  document.getElementById('t-qnum-lbl').textContent='Pregunta '+(idx+1)+' de '+banco.length;
+  document.getElementById('t-pregunta-txt').textContent=q.texto;
+  renderLiveOpts(q.opciones,{},estadoActual.equipos?.length||0);
+  startTimer(q.duracion,Date.now(),'t-ring','t-tnum',terminarPregunta);
+  showScreen('scr-profe-pregunta');
+}
+
+let terminando=false;
+async function terminarPregunta(){
+  if(terminando)return; terminando=true;
+  if(timerId)clearInterval(timerId);
+  const resp=await getJSON('/api/respuestas')||{};
+  const est=await getJSON('/api/estado'); if(!est){terminando=false;return;}
+
+  // ── CORRECCIÓN BUG PUNTOS ──
+  const ci = parseInt(est.pregunta.correcta, 10);
+  const dur = parseFloat(est.pregunta.duracion);
+  const inicio = parseFloat(est.pregunta.inicio);
+
+  const pts={...(est.puntuaciones||{})};
+  const aciertos={...(est.aciertos||{})};
+  (est.equipos||[]).forEach(eq=>{if(!(eq in pts))pts[eq]=0; if(!(eq in aciertos))aciertos[eq]=0;});
+
+  Object.entries(resp).forEach(([eq,r])=>{
+    const opcion = parseInt(r.opcion, 10);
+    const tiempo = parseFloat(r.tiempo);
+    if(opcion === ci){
+      const e = Math.max(0, (tiempo - inicio) / 1000);
+      pts[eq] = (pts[eq]||0) + Math.round(500 + 500 * Math.max(0, 1 - e / dur));
+      aciertos[eq] = (aciertos[eq]||0) + 1;
+    }
+  });
+
+  terminando=false;
+  const nuevo={...est,fase:'resultados',puntuaciones:pts,aciertos};
+  await postJSON('/api/estado',nuevo); estadoActual=nuevo;
+  const tot=Object.keys(resp).length;
+  const c=document.getElementById('t-res-opciones');
+  c.innerHTML=`<p style="font-weight:600;font-size:14px;margin-bottom:10px">${est.pregunta.texto}</p>`;
+  OPTS.forEach((o,i)=>{
+    const cnt=Object.values(resp).filter(r=>parseInt(r.opcion,10)===i).length;
+    const pct=tot>0?Math.round(cnt/tot*100):0;
+    const isc=i===ci;
+    const d=document.createElement('div');d.className='live-opt';
+    d.innerHTML=`<div class="live-label"><span class="live-badge" style="background:${isc?'#1db87a':o.col}">${isc?'✓':o.l}</span><span style="flex:1;font-size:14px;font-weight:${isc?600:400}">${est.pregunta.opciones[i]}</span><span style="font-weight:700">${cnt}</span></div>
+    <div class="bar-track"><div class="bar-fill" style="background:${isc?'#1db87a':o.col};width:${pct}%"></div></div>`;
+    c.appendChild(d);
+  });
+  document.getElementById('t-res-titulo').textContent='Pregunta '+(qActualIdx+1)+' — Resultados';
+  renderTabla('t-res-tabla',pts,aciertos);
+  const ultima=qActualIdx>=banco.length-1;
+  const bs=document.getElementById('btn-sig');
+  bs.textContent=ultima?'Finalizar juego':'Siguiente pregunta →';
+  bs.onclick=ultima?endGame:siguientePregunta;
+  showScreen('scr-profe-resultados');
+}
+
+function siguientePregunta(){lanzarPregunta(qActualIdx+1);}
+
+async function endGame(){
+  const e={...estadoActual,fase:'fin'};await postJSON('/api/estado',e);estadoActual=e;
+  renderTabla('t-fin-tabla',e.puntuaciones||{},e.aciertos||{});showScreen('scr-profe-fin');
+}
+
+async function volverBanco(){
+  await postJSON('/api/estado',{fase:'espera',qIdx:0,pregunta:null,puntuaciones:{},equipos:[]});
+  estadoActual=null; cargarBanco(); showScreen('scr-profe-banco');
+}
+
+// ─── SHARED RENDER ────────────────────────────────
+function renderLiveOpts(opciones,resp,total){
+  const num=document.getElementById('t-resp-num');
+  const ce=document.getElementById('t-resp-sub');
+  const tags=document.getElementById('t-equipos-respondidos');
+  const n=Object.keys(resp).length;
+  if(num)num.textContent=n;
+  if(ce)ce.textContent='de '+total+' equipo'+(total!==1?'s':'')+' han respondido';
+  if(tags){tags.innerHTML='';Object.keys(resp).forEach(eq=>{const t=document.createElement('span');t.className='tag';t.style.cssText='font-size:12px;padding:3px 10px';t.textContent=eq;tags.appendChild(t);});}
+}
+
+function updateLiveOpts(resp,total){
+  renderLiveOpts(null,resp,total);
+  if(total>0&&Object.keys(resp).length>=total) terminarPregunta();
+}
+
+function renderTabla(id,pts,aciertos){
+  const c=document.getElementById(id);if(!c)return;c.innerHTML='';
+  const s=Object.entries(pts||{}).sort((a,b)=>b[1]-a[1]);
+  if(!s.length){c.innerHTML='<p class="sub" style="text-align:center">Sin puntuaciones</p>';return;}
+  const m=['🥇','🥈','🥉'];
+  const mostrarAciertos=aciertos&&Object.keys(aciertos).length>0;
+  s.forEach(([eq,p],i)=>{const d=document.createElement('div');d.className='score-row';
+    const ac=mostrarAciertos?(aciertos[eq]||0):null;
+    d.innerHTML=`<div style="width:26px;text-align:center;font-size:17px">${m[i]||(i+1)+'.'}</div>
+    <div style="flex:1;font-weight:600">${eq}</div>
+    ${ac!==null?`<div style="font-size:12px;color:var(--muted);margin-right:8px">${ac} ✓</div>`:''}
+    <div style="font-weight:700;font-size:17px">${p.toLocaleString()}</div>`;
+    c.appendChild(d);});
+}
+
+function updateEquipos(equipos){
+  document.getElementById('t-eq-count').textContent=equipos.length+' equipo'+(equipos.length!==1?'s':'')+' conectado'+(equipos.length!==1?'s':'');
+  const el=document.getElementById('t-equipos-list');el.innerHTML='';
+  if(!equipos.length){el.innerHTML='<span class="sub" style="font-size:13px">Esperando equipos...</span>';return;}
+  equipos.forEach(eq=>{const t=document.createElement('span');t.className='tag';t.textContent=eq;el.appendChild(t);});
+}
+
+// ─── TIMER ────────────────────────────────────────
+function startTimer(dur,start,ringId,numId,onEnd){
+  if(timerId)clearInterval(timerId);
+  const circ=226.2,ring=document.getElementById(ringId),num=document.getElementById(numId);
+  const tick=()=>{
+    const left=Math.max(0,dur-(Date.now()-start)/1000);
+    if(ring){ring.style.strokeDashoffset=circ*(1-left/dur);ring.style.stroke=left<=5?'#e85d3a':left<=10?'#e8b520':'var(--accent)';}
+    if(num)num.textContent=Math.ceil(left);
+    if(left<=0){clearInterval(timerId);if(onEnd)onEnd();}
+  };
+  tick();timerId=setInterval(tick,200);
+}
+
+// ─── POLL ─────────────────────────────────────────
+function startPoll(){
+  if(pollId)clearInterval(pollId);
+  pollId=setInterval(async()=>{
+    const est=await getJSON('/api/estado');if(!est)return;
+    estadoActual=est;
+    const scr=document.querySelector('.screen.active')?.id;
+
+    if(role==='profe'){
+      if(scr==='scr-profe-lobby')updateEquipos(est.equipos||[]);
+      if(scr==='scr-profe-pregunta'&&est.fase==='pregunta'){
+        const resp=await getJSON('/api/respuestas')||{};
+        updateLiveOpts(resp,(est.equipos||[]).length);
+      }
+    }
+
+    if(role==='alumno'){
+      if(!(est.equipos||[]).includes(equipoNombre))
+        await fetch('/api/equipo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({equipo:equipoNombre})});
+
+      if(scr==='scr-alumno-espera')renderTabla('alu-tabla-espera',est.puntuaciones,est.aciertos);
+
+      const nuevaPregunta=est.fase==='pregunta'&&(est.fase!==prevFase||est.qIdx!==prevQIdx);
+      if(nuevaPregunta){
+        miRespuesta=null;
+        const p=est.pregunta;
+        document.getElementById('s-pregunta-txt').textContent=p.texto;
+        const so=document.getElementById('s-opciones');so.innerHTML='';
+        p.opciones.forEach((op,i)=>{
+          const b=document.createElement('button');b.className='opt-btn opt-'+OPTS[i].l;b.id='sopt'+i;
+          b.innerHTML=`<span class="opt-letter">${OPTS[i].l}</span>${op}`;
+          b.onclick=()=>responder(i,op);so.appendChild(b);
+        });
+        startTimer(p.duracion,p.inicio,'s-ring','s-tnum',null);
+        showScreen('scr-alumno-pregunta');
+      }
+
+      if(est.fase==='resultados'&&(scr==='scr-alumno-respondido'||scr==='scr-alumno-pregunta')&&est.qIdx===prevQIdx){
+        if(timerId)clearInterval(timerId);
+        const ci=parseInt(est.pregunta.correcta,10),acerto=miRespuesta===ci,sinR=miRespuesta===null;
+        document.getElementById('s-res-icon').textContent=sinR?'⏱':acerto?'🎉':'✕';
+        document.getElementById('s-res-titulo').textContent=sinR?'Sin respuesta':acerto?'¡Correcto!':'Incorrecto';
+        document.getElementById('s-res-titulo').style.color=sinR?'#e8b520':acerto?'#1db87a':'#e85d3a';
+        document.getElementById('s-correcta-disp').textContent=OPTS[ci].l+' — '+est.pregunta.opciones[ci];
+        document.getElementById('s-pts-total').textContent=(est.puntuaciones?.[equipoNombre]||0).toLocaleString()+' pts';
+        showScreen('scr-alumno-resultado');
+      }
+
+      if(est.fase==='fin'&&scr!=='scr-alumno-fin'){
+        if(timerId)clearInterval(timerId);
+        document.getElementById('s-fin-equipo').textContent=equipoNombre;
+        document.getElementById('s-fin-pts').textContent=(est.puntuaciones?.[equipoNombre]||0).toLocaleString()+' pts';
+        renderTabla('s-fin-tabla',est.puntuaciones,est.aciertos);
+        showScreen('scr-alumno-fin');
+      }
+    }
+    prevFase=est.fase;prevQIdx=est.qIdx;
+  },1500);
+}
+
+async function responder(idx,texto){
+  if(miRespuesta!==null)return;miRespuesta=idx;
+  OPTS.forEach((_,i)=>{const b=document.getElementById('sopt'+i);if(b)b.disabled=true;});
+  document.getElementById('s-mi-respuesta').textContent=OPTS[idx].l+' — '+texto;
+  await fetch('/api/respuesta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({equipo:equipoNombre,opcion:idx,tiempo:Date.now()})});
+  showScreen('scr-alumno-respondido');
+}
+
+async function getJSON(url){try{const r=await fetch(url);return await r.json();}catch{return null;}}
+async function postJSON(url,data){try{await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});}catch(e){console.error(e);}}
+</script>
+</body>
+</html>
